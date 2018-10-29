@@ -1,0 +1,24 @@
+module shift16 (
+    input alufn[6],  // control pin input ALUFN
+    input a[16],  // Input A
+    input b[16], // Input B or amount to shift
+    output shift[16] // output for the shifted value
+  ) {
+
+  always {
+    case(alufn[1:0])
+     {
+       b00: // shift left
+         shift = a << b;
+        
+       b01: // shift right
+         shift = a >> b;
+      
+       b11: // shift right arithmetic
+         shift = $signed(a) >>> b;
+      
+       default: // set to be a
+         shift = a;
+    }
+  }
+}

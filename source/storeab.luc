@@ -1,0 +1,35 @@
+module storeab (
+    input clk,
+    input btna,
+    input btnb,
+    input switches[16],
+    output geta[16],
+    output getb[16]
+  ) {
+  
+  .clk(clk){
+  edge_detector eda(#RISE(1), #FALL(0)); // create an edge_detector for the button that stores input A 
+  edge_detector edb(#RISE(1), #FALL(0)); // create an edge_detector for the button that stores input B
+  }
+  // eda.clk = clk;
+  // edb.clk = clk;
+
+  button_conditioner button_condA(.clk(clk), .in(btna)); // button conditioner for debouncing of button
+  button_conditioner button_condB(.clk(clk), .in(btnb)); // button conditioner for debouncing of button
+
+  dff storeA[16](.clk(clk)); // set a 16bit dff to store each of the 16bit of A as well as setting the clock of the dff to clock
+  dff storeB[16](.clk(clk)); // set a 16bit dff to store each of the 16bit of B as well as setting the clock of the dff to clock
+
+  always {
+    eda.in = button_condA.out; // input the conditioned button A input into the edge_detector
+    edb.in = button_condB.out; // input the conditioned button B input into the edge_detector
+    if(eda.out){ // if edge A is detected, button A is pressed
+        storeA.d = switches; // set the register of A to store the value of the hardware switches
+    }
+    if(edb.out){ // if edge B is detected, button B is presssed
+        storeB.d = switches; // set the register of B to store the value of the hardware switches
+    }
+    geta = storeA.q; // set a getter function to access the stored value of register A
+    getb = storeB.q; // set a getter function to access the stored value of register B
+  }
+}

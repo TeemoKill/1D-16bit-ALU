@@ -1,0 +1,28 @@
+module comparator16 (
+    input alufn[6],  // input alfn
+    input z, // use z from adder 
+    input v, // use v from adder
+    input n, // use n from adder
+    output comp // comparator
+  ) { 
+  
+  always {
+    case(alufn[2:1]) 
+    {
+      b00: // not used 
+        comp = 0; 
+        
+      b01: // compare equal
+        comp = z;
+      
+      b10: // compare less than
+        comp = n ^ v;
+      
+      b11: // compare less than equal
+        comp = z | (n ^ v);
+        
+      default:
+        comp = 0; // default to zero
+  }
+}
+}

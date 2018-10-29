@@ -1,0 +1,10 @@
+module blink (
+    input clk,  // clock
+    input rst,  // reset
+    output blink,
+    output hold[27]
+  ) {
+
+  
+}
+

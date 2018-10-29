@@ -1,0 +1,44 @@
+module adder16 (
+    input a[16],  // first input an array of 16bit
+    input b[16],  // second input an array of 16bit
+    input alufn[6], // control input
+    output s[16], // output of the sum
+    output z, // output z
+    output v, // output v
+    output n, // output n
+    output overflow
+  ) {
+
+  sig tmp[16]; // tmp signal for access to do computation of v n and z
+  sig comp[16]; // tmp signal for access to do computation of v n and z
+
+  always {
+    case(alufn[1:0]) // using the alufn0 value to choose
+    {
+      b00:
+        tmp = a + b; // if alufn[1:0] is 00 do addition
+
+      b01:
+        tmp = a - b;  // if alufn[1:0] is 01 do subtraction
+
+      b10:
+        tmp = a*b;    //if alufn[1:0] is 10, do multiplication
+
+      b11:
+        tmp = a-(a/b*b);    //if alufn[1:0] is 11, do modulo
+
+      default:
+        tmp = a + b; // default to addition
+    }
+    comp = a - b;
+
+    overflow = (a[15] & b[15] & ~tmp[15]) | (~a[15] & ~b[15] & tmp[15]); // calculate v
+    v = (a[15] & ~b[15] & (~comp[15])) | ((~a[15])&(b[15])&comp[15]);
+
+    n = comp[15]; // calculate n
+
+    z = ~|comp; // calculate z
+
+    s = tmp; // output the s
+  }
+}

@@ -1,0 +1,36 @@
+module boole16 (
+    input alufn[6],  // input from alufn
+    input a[16],  // input a
+    input b[16], // input b
+    output boole[16] // output of the boolean operation
+  ) {
+
+  always {
+    case(alufn[3:0])
+    {
+      b1000: // AND case
+        boole = a & b;
+      
+      b1110: // OR case
+        boole = a | b;
+      
+      b0110: // XOR case
+        boole = a ^ b;
+      
+      b1010: // LDR case
+        boole = a;
+
+      b0001:  //NOR case
+        boole = ~(a | b);
+
+      b0111:   //NAND case
+        boole = ~(a & b);
+
+      b1001:   //XNOR case
+        boole = ~(a ^ b);
+
+      default:
+        boole = 0;
+  }
+}
+}
