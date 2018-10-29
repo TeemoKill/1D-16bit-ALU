@@ -1,0 +1,415 @@
+module autotest (
+    input clk,
+    input rst,
+    input mode_switch,
+    output out[4][4],
+    output leds[3][8]
+  ) {
+
+// instantiate the alu to check its output against test case
+  sig tester_reset;
+  const CLKSPEED = 26; // speed of update for 26 is approx 1.34s
+  dff counter[CLKSPEED](.clk(clk), .rst(tester_reset)); // create counter as clk
+  dff led[3][8](.clk(clk), .rst(tester_reset));
+  dff pass_condition[1](.clk(clk), .rst(tester_reset));
+
+  alu16bit alu; // instantiate alu for checking logic of program against predefined assertions
+
+  edge_detector testButton(.clk(clk), .in(mode_switch), #FALL(0));
+  
+  .clk(clk){
+    fsm state(.rst(tester_reset)) = {START, ADD, ADD_OVR, SUB, SUB_OVR, AND, NAND, OR, NOR, XOR, XNOR, A, SHL, SHR, SRA, CMPEQ, CMPLT, CMPLE, MULTIPLY, MOD, PASS, FAIL}; // create states for testing each of the fsm.
+  }
+  
+    const OADD   = 6b000000; // list of OPCODES for different tests 
+    const OSUB   = 6b000001; 
+    const OAND   = 6b011000;
+    const ONAND  = 6b010111; 
+    const OOR    = 6b011110;
+    const ONOR   = 6b010001;
+    const OXOR   = 6b010110;
+    const ONXOR  = 6b011001; 
+    const OA     = 6b011010;
+    const OCMPEQ = 6b110011; 
+    const OCMPLT = 6b110101;
+    const OCMPLE = 6b110111;
+    const OSHL   = 6b100000; 
+    const OSHR   = 6b100001; 
+    const OSRA   = 6b100011;
+    const OMUL   = 6b000010; 
+    const OMOD   = 6b000011;
+    const TV1 =16b011; //3
+    const TV2 =16b100; //4
+
+  always {
+  
+    tester_reset = testButton.out | rst;
+    // to increment counter
+    counter.d = counter.q + 1;
+    leds = led.q;
+    leds[2][7] = 1;
+    //leds[2][6] = pass_condition.q;
+
+    // Test cases
+    case(state.q){
+      //all test cases output format is 4 numbers to the 7seg, XXYY
+      // XX refers to the test case, 01 for ADD, 02 for SUB and so on ....
+      // YY refers to the results of the test, 11 for pass and 00 for fail
+      // addition test
+      
+      state.START:
+        alu.alufn=0;
+        out = {4d0,4d0,4d0,4d0};
+        alu.a =0;
+        alu.b=0;
+        // at end state use middle button to reset the test from the top
+        if (counter.q[CLKSPEED-1]) {
+          pass_condition.d = 1;
+          state.d = state.ADD;
+        }
+      
+      //Check add
+      state.ADD:
+        alu.alufn = OADD; // set proper alufn to input to alu
+        alu.a = TV1; // set a 
+        alu.b = TV2; // set b 
+        if (alu.out == 16b111){ // correct 7
+          led.d[0][0] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d1,4d1,4d1}; //{testdigit1, testdigit2, 1, 1} pass case
+          }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d1,4d0,4d0}; //{testdigit1, testdigit2, 0, 0} fail case
+          }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.ADD_OVR; // move to next test case
+        }
+
+      state.ADD_OVR:
+        alu.alufn = OADD; // set proper alufn to input to alu
+        alu.a = 16b0100000000000000; // set a value for test
+        alu.b = 16b0100000000000000; // set b value for test
+        if (alu.overflow == 1){ // assertion set correct value for output of a op b
+          led.d[0][1] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d2,4d1,4d1}; //{testdigit1, testdigit2, 1, 1} pass case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d2,4d0,4d0}; //{testdigit1, testdigit2, 0, 0} fail case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.SUB; // move to next test case
+        }
+
+
+      state.SUB:
+        alu.alufn = OSUB;  //OPCODE for subtraction
+        alu.a = TV2;  //4
+        alu.b = TV1;  //3
+
+        if (alu.out == 16b1){  //CORRECT ANS = 1
+          led.d[0][2] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d3,4d1,4d1};  // true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d3,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.SUB_OVR;  //next state
+        }
+
+      state.SUB_OVR:
+        alu.alufn = OSUB;   //OPCODE for subtraction
+        alu.a = 16b1011111111111111;
+        alu.b = 16b0100000000000000;
+
+        if (alu.out == 16b0111111111111111){
+            led.d[0][3] = 1; // set the led corresponding to this case as passed
+            out = {4d0,4d4,4d1,4d1};  //true case
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d0,4d4,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+            state.d = state.AND;  //next state
+        }
+
+      state.AND:
+        alu.alufn = OAND;  //OPCODE for AND
+        alu.a = 16b01;
+        alu.b = 16b01; 
+        if (alu.out == 16b1){  //should result in 1 iff ith digit of both a and b are 3
+          led.d[0][4] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d5,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d5,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.NAND;  //next state
+        }
+
+      state.NAND:
+        alu.alufn = ONAND;  //OPCODE for NAND
+        alu.a = 16b0011;
+        alu.b = 16b0101;
+        if (alu.out == 16b1111111111111110){ //should result in 1 iff ith digit of both a and b are 0
+          led.d[0][5] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d6,4d1,4d1};  //true case
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d0,4d6,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+            state.d = state.OR;  //next state
+        }
+
+      state.OR:
+        alu.alufn = OOR;  //OPCODE for OR
+        alu.a = 16b1010;
+        alu.b = 16b1111;
+        if (alu.out == 16b1111){ // 
+        //if (alu.out == 16b1111){  //should result in 0 iff ith digit of either a and b are 0, else 1
+          led.d[0][6] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d7,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d7,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.NOR;  //next state
+        }
+
+      state.NOR:
+        alu.alufn = ONOR;  //OPCODE for NOR
+        alu.a = 16b0011;
+        alu.b = 16b0101;
+        if (alu.out == 16b1111111111111000){  //should result in 1 iff ith digit of either a and b are 0, else 0
+          led.d[0][7] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d8,4d1,4d1};  //true case
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d0,4d8,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+            state.d = state.XOR;
+        }
+
+      state.XOR:
+        alu.alufn = OXOR;  //OPCODE for XOR
+        alu.a = 16b1010;
+        alu.b = 16b1100;
+        if (alu.out == 16b0110){  //should result in 1 iff ith digit of a and b are complements
+          led.d[1][0] = 1; // set the led corresponding to this case as passed
+          out = {4d0,4d9,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d0,4d9,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.XNOR;  //next state
+        }
+
+      state.XNOR:
+        alu.alufn = ONXOR;  //OPCODE for NXOR
+        alu.a = 16b1010;
+        alu.b = 16b1100;
+        if (alu.out == 16b1111111111111001){  //should result in 0 iff ith digit of a and b are complements
+          led.d[1][1] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d0,4d1,4d1};  // true case
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d1,4d0,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+            state.d = state.A;  //next state
+        }
+
+      state.A:
+        alu.alufn = OA;  //OPCODE for OA
+        alu.a = TV1;
+        alu.b = TV2;
+        if (alu.out == TV1){
+          led.d[1][2] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d1,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d1,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.CMPEQ;  //next state
+        }
+
+      state.CMPEQ:
+        alu.alufn = OCMPEQ;  //OPCODE for CMPEQ
+        alu.a = TV1;
+        alu.b = TV1;
+        if (alu.out == 1){  //if a and b are equal
+          led.d[1][3] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d2,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d2,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.CMPLT;  //next state
+        }
+
+      state.CMPLT:
+        alu.alufn = OCMPLT;  //OPCODE for CMPLT
+        alu.a = 16b1010;
+        alu.b = 16b1010;
+        if (alu.out == 0){
+          led.d[1][4] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d3,4d1,4d1}; //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d3,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.CMPLE;  //next state
+        }
+
+      state.CMPLE:
+        alu.alufn = OCMPLE;  //OPCODE for CMPLE
+        alu.a = 16b1010;
+        alu.b = 16b1010;
+        if (alu.out == 1){
+          led.d[1][5] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d4,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d4,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.SHL;  //next state
+        }
+
+      state.SHL:
+        alu.alufn = OSHL;  //OPCODE of SHL
+        alu.a = 16b1010;
+        alu.b = 16b11; // 3 in decimal
+        if (alu.out == 16b1010000){
+          led.d[1][6] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d5,4d1,4d1};  ///true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d5,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.SHR;  //next state
+        }
+
+      state.SHR:
+        alu.alufn = OSHR;  //OPCODE for SHR
+        alu.a = 16b1010000;
+        alu.b = 16b11; // 3 in decimal
+        if (alu.out == 16b1010){  //result we get when we shift a to the right by b
+          led.d[1][7] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d6,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d6,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.SRA;  //next state
+        }
+
+      state.SRA:
+        alu.alufn = OSRA;  //OPCODE for SRA
+        alu.a = 16b1000000000001000;
+        alu.b = 16b11; // 3 in decimal
+        if (alu.out == 16b1111000000000001){  //result of arithmetic shifting
+          led.d[2][0] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d7,4d1,4d1};  //true case
+        }
+        else {
+          pass_condition.d = 0; // set pass condition to false if this case failed
+          out = {4d1,4d7,4d0,4d0};  //false case
+        }
+        if(counter.q[CLKSPEED-1]){
+          state.d = state.MULTIPLY;  //next state
+        }
+
+      state.MULTIPLY:
+        alu.alufn = OMUL;  //OPCODE for multiplication
+        alu.a = TV1; // 3 
+        alu.b = TV2;  // 4 
+        if (alu.out == 16b0000000000001100){  //12
+          led.d[2][1] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d8,4d1,4d1};   //if true
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d1,4d8,4d0,4d0};   //if false
+        }
+        if(counter.q[CLKSPEED-1]){
+            state.d = state.MOD;
+        }
+
+      state.MOD:
+        alu.alufn = OMOD;  //OPCODE for MOD
+        alu.a = TV2; // 4 in decimal
+        alu.b = TV1;  // 3 in decimal
+        if (alu.out == 16b0000000000000001){  //ANS SHOULD  BE 1
+          led.d[2][2] = 1; // set the led corresponding to this case as passed
+          out = {4d1,4d9,4d1,4d1};   //if true
+        }
+        else {
+            pass_condition.d = 0; // set pass condition to false if this case failed
+            out = {4d1,4d9,4d0,4d0};   //if false
+        }
+        if(counter.q[CLKSPEED-1]){
+          if (pass_condition.q == 1) {
+            state.d = state.PASS;
+          } else {
+            state.d = state.FAIL;
+          }
+        }
+
+      state.PASS:
+        out = {4d10,4d11,4d5,4d5};
+        alu.a =0;
+        alu.b=0;
+        alu.alufn=0;
+        // at end state use middle button to reset the test from the top
+        if (tester_reset == 1) 
+          state.d = state.ADD;
+          
+      state.FAIL:
+        out = {4d12,4d11,4d1,4d13};
+        alu.a =0;
+        alu.b=0;
+        alu.alufn=0;
+        // at end state use middle button to reset the test from the top
+        if (tester_reset == 1) 
+          state.d = state.ADD;
+
+      default:
+        state.d = state.START;
+        out = {4d0,4d0,4d0,4d0};
+        alu.a =0;
+        alu.b=0;
+        alu.alufn=0;
+    }
+    
+    if (counter.q[CLKSPEED-1] == 1) {
+        counter.d[CLKSPEED-1] = 0;
+      }
+  }
+}
+    

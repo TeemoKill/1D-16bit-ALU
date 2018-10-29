@@ -1,0 +1,33 @@
+module storage (
+    input clk,
+    input buta, //button a&b
+    input butb,
+    input switches[16],
+    output geta[16],
+    output getb[16]
+  ) {
+  
+  .clk(clk){
+  edge_detector eda(#RISE(1), #FALL(0)); // edge_detector  A 
+  edge_detector edb(#RISE(1), #FALL(0)); // edge_detector   B
+  }
+  
+  button_conditioner button_condA(.clk(clk), .in(buta)); // button conditioner for debouncing of button
+  button_conditioner button_condB(.clk(clk), .in(butb)); // button conditioner for debouncing of button
+
+  dff storeA[16](.clk(clk)); // here set 2 dff  to store the value of 16bits A & B
+  dff storeB[16](.clk(clk)); //also connect to clk
+
+  always {
+    eda.in = button_condA.out; // put in conditions when buttons are pressed in edge detector
+    edb.in = button_condB.out; // 
+    if(eda.out){ //  button A is pressed
+        storeA.d = switches; // set the register of A to store the value of the hardware switches
+    }
+    if(edb.out){ // i button B is presssed
+        storeB.d = switches; // set the register of B to store the value of the hardware switches
+    }
+    geta = storeA.q; // get value of A
+    getb = storeB.q; // get value of B
+  }
+}
