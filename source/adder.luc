@@ -1,0 +1,45 @@
+module adder (
+    input a[16],  // INPUT OF A
+    input b[16],  // INPUT OF B
+    input alufn[6], // select functions
+    output s[16], // 
+    output z, //  get z
+    output v, // get v
+    output n, // get n
+    output overflow
+  ) {
+
+  sig temporary[16]; //  temporary value for zvn
+  sig compute[16]; //  to get zvn
+
+  always {
+    case(alufn[1:0]) // using the alufn0 value to choose OPCODE
+    {
+      b00:
+        temporary = a + b; // OPCODE 000000 do addition
+
+      b01:
+        temporary= a - b;  // OPCODE 000001 do subtraction
+
+      b10:
+        temporary = a*b;    //OPCODE 000010 do multiplication
+
+      b11:
+        temporary = a-(a/b*b);    //OPCODE 000011, do modulo
+
+      default:
+        temporary = a + b; // default to addition
+    }
+    compute = a - b;
+
+    overflow = (a[15] & b[15] & ~temporary[15]) | (~a[15] & ~b[15] & temporary[15]); 
+    // calculate v
+    v = (a[15] & ~b[15] & (~compute[15])) | ((~a[15])&(b[15])&compute[15]);
+
+    n = compute[15]; // calculate n
+
+    z = ~|compute; // calculate z
+
+    s = temporary; // output the s
+  }
+}
