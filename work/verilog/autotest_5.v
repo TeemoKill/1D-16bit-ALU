@@ -490,15 +490,6 @@ module autotest_5 (
   
   always @(posedge clk) begin
     if (tester_reset == 1'b1) begin
-      M_led_q <= 1'h0;
-    end else begin
-      M_led_q <= M_led_d;
-    end
-  end
-  
-  
-  always @(posedge clk) begin
-    if (tester_reset == 1'b1) begin
       M_state_q <= 1'h0;
     end else begin
       M_state_q <= M_state_d;
@@ -508,9 +499,9 @@ module autotest_5 (
   
   always @(posedge clk) begin
     if (tester_reset == 1'b1) begin
-      M_pass_condition_q <= 1'h0;
+      M_led_q <= 1'h0;
     end else begin
-      M_pass_condition_q <= M_pass_condition_d;
+      M_led_q <= M_led_d;
     end
   end
   
@@ -520,6 +511,15 @@ module autotest_5 (
       M_counter_q <= 1'h0;
     end else begin
       M_counter_q <= M_counter_d;
+    end
+  end
+  
+  
+  always @(posedge clk) begin
+    if (tester_reset == 1'b1) begin
+      M_pass_condition_q <= 1'h0;
+    end else begin
+      M_pass_condition_q <= M_pass_condition_d;
     end
   end
   

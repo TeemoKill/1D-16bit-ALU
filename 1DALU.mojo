@@ -2,12 +2,12 @@
 <project name="1DALU" board="Mojo V3" language="Lucid">
   <files>
     <src>alu16bit.luc</src>
-    <src>boolean.luc</src>
     <src>shiftbit.luc</src>
+    <src>boolean.luc</src>
     <src>autotest.luc</src>
     <src>seven_seg.luc</src>
-    <src>multi_seven_seg.luc</src>
     <src>adder.luc</src>
+    <src>multi_seven_seg.luc</src>
     <src top="true">mojo_top.luc</src>
     <src>comparator.luc</src>
     <src>storage.luc</src>
