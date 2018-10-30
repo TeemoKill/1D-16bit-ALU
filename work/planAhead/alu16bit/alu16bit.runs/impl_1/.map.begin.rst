@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<ProcessHandle Version="1" Minor="0">
-    <Process Command="map" Owner="11588" Host="TEEMOKILL" Pid="17140">
-    </Process>
-</ProcessHandle>

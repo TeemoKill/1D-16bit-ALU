@@ -1,0 +1,36 @@
+module boolean (
+    input alufn[6],  // OPCODE
+    input a[16],  // A
+    input b[16], // B
+    output boole[16] // output 
+  ) {
+
+  always {
+    case(alufn[3:0])
+    {
+      b1000: // AND 
+        boole = a & b;
+      
+      b1110: // OR 
+        boole = a | b;
+      
+      b0110: // XOR 
+        boole = a ^ b;
+      
+      b1010: // LDR 
+        boole = a;
+
+      b0001:  //NOR 
+        boole = ~(a | b);
+
+      b0111:   //NAND 
+        boole = ~(a & b);
+
+      b1001:   //XNOR 
+        boole = ~(a ^ b);
+
+      default:
+        boole = 0;
+  }
+}
+}

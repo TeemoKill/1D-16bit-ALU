@@ -37,20 +37,21 @@ module mojo_top (
   }
 
   // instantiation of modules
-  alu16 alu; // instantiate the ALU
-  storeab sab; // instantiate storeab that allows button press to store the value of switches to A or B and access stored value
+  alu16bit alu; // instantiate the ALU
+  storage sab; // instantiate storeab that allows button press to store the value of switches to A or B and access stored value
   fsm state(.clk(clk), .rst(rst)) = {A, B, OUT}; // create 3 states for the display of values on LED, stored value of A, B and OUT
 
   //instantiate tester16
-  tester16 tester(.clk(slow_clk.q[1]),
-   .rst(rst),
-    .mode_switch(testsig));
+  autotest tester(.clk(slow_clk.q[1]),
+    .rst(rst),
+    .mode_switch(testsig),
+    .error_switch(io_dip[2][6]));
 
   always {
     reset_cond.in = ~rst_n;   // input raw inverted reset signal
     rst = reset_cond.out;     // conditioned reset
 
-    led = c{3b0, io_button};  // connect buttons to LEDs
+    led = c{alu.z, alu.v, alu.n, io_button};  // connect buttons to LEDs
     spi_miso = bz;            // not using SPI
     spi_channel = bzzzz;      // not using flags
     avr_rx = bz;              // not using serial port
@@ -65,8 +66,8 @@ module mojo_top (
 
     // set the hardware connection to the module
     sab.clk = clk; // set clock of sab to clk
-    sab.btna = io_button[3]; // set the left button to store the switches value to a
-    sab.btnb = io_button[4]; // set the right button to store the switches value to b
+    sab.buta = io_button[3]; // set the left button to store the switches value to a
+    sab.butb = io_button[4]; // set the right button to store the switches value to b
     sab.switches[7:0] = io_dip[0]; // as the switches are in a set, right set of 8 to the 8 7:LSB value
     sab.switches[15:8] = io_dip[1]; // set the middle set to the MSB:8 values
 
@@ -120,3 +121,4 @@ module mojo_top (
     }
     }
 }
+
